@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Validasi Gas">
+    <meta name="description" content="Sistem Pencatatan NIK Pelanggan Gas - Firebase Cloud Sync">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Validasi Data Gas - Firebase Sync</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .cloud-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #FFA000, #FF6F00);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .sync-status {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #28a745;
+        }
+
+        .sync-status.syncing {
+            border-left-color: #ffc107;
+        }
+
+        .sync-status.error {
+            border-left-color: #dc3545;
+        }
+
+        .sync-status.offline {
+            border-left-color: #6c757d;
+        }
+
+        .sync-text {
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sync-time {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .online-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .offline-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #6c757d;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .user-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-details {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .google-signin-btn {
+            background: white;
+            color: #444;
+            border: 1px solid #dadce0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+
+        .google-signin-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+
+        .legend {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 20px;
+            margin-bottom: 8px;
+        }
+
+        .legend-box {
+            width: 25px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="text"]:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        button:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .clear-btn {
+            background: #dc3545;
+        }
+
+        .clear-btn:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .export-btn {
+            background: #28a745;
+        }
+
+        .export-btn:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .backup-btn {
+            background: #17a2b8;
+        }
+
+        .backup-btn:hover:not(:disabled) {
+            background: #138496;
+        }
+
+        .warning, .error, .success, .info {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        .warning.show, .error.show, .success.show, .info.show {
+            display: block;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        .data-display {
+            margin-top: 20px;
+        }
+
+        .data-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .data-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .data-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .data-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .data-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .data-item {
+            background: white;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            border-left: 5px solid transparent;
+        }
+
+        .data-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .data-item-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .data-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-index {
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .data-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+
+        .data-item.normal {
+            border-left-color: #6c757d;
+        }
+
+        .data-item.duplicate-2 {
+            background: #d4f4dd;
+            border-left-color: #51cf66;
+        }
+
+        .data-item.duplicate-3 {
+            background: #fff9db;
+            border-left-color: #ffd43b;
+        }
+
+        .data-item.duplicate-4 {
+            background: #ffe0e0;
+            border-left-color: #ff6b6b;
+        }
+
+        .data-number {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .data-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .data-item.duplicate-2 .data-badge {
+            background: #51cf66;
+        }
+
+        .data-item.duplicate-3 .data-badge {
+            background: #ffd43b;
+            color: #333;
+        }
+
+        .data-item.duplicate-4 .data-badge {
+            background: #ff6b6b;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .confirm-delete-nik {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #dc3545;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .login-prompt {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .login-prompt h3 {
+            margin-bottom: 10px;
+        }
+
+        .login-prompt p {
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 Validasi Data Gas</h1>
+            <p class="subtitle">Sistem Pencatatan NIK Pelanggan Gas</p>
+            <div class="cloud-badge">🔥 Firebase Real-time Sync</div>
+        </div>
+
+        <div class="sync-status offline" id="syncStatus">
+            <div>
+                <div class="sync-text" id="syncText">
+                    <span class="offline-indicator" id="statusIndicator"></span>
+                    <span>Belum Login - Data hanya lokal</span>
+                </div>
+                <div class="sync-time" id="syncTime">Login dengan Google untuk sync cloud</div>
+            </div>
+        </div>
+
+        <div id="loginPrompt" class="login-prompt">
+            <h3>☁️ Aktifkan Cloud Sync</h3>
+            <p>Login dengan Google untuk menyimpan data di cloud dan sync antar device</p>
+            <button class="google-signin-btn" onclick="signInWithGoogle()" style="margin: 0 auto;">
+                <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg"><g fill="#000" fill-rule="evenodd"><path d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z" fill="#EA4335"></path><path d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z" fill="#4285F4"></path><path d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z" fill="#FBBC05"></path><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.4-1.57-5.12-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z" fill="#34A853"></path><path fill="none" d="M0 0h18v18H0z"></path></g></svg>
+                Sign in with Google
+            </button>
+        </div>
+
+        <div class="user-info" id="userInfo" style="display: none;">
+            <div class="user-details">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <div>
+                    <div class="user-name" id="userName">Loading...</div>
+                    <div class="user-email" id="userEmail"></div>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="signOut()">Logout</button>
+        </div>
+
+        <div class="legend">
+            <strong>Keterangan:</strong>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #e9ecef;"></div>
+                <span>Normal (1x)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #d4f4dd;"></div>
+                <span>🟢 Kembar 2 (2x)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #fff9db;"></div>
+                <span>🟡 Kembar 3 (3x)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #ffe0e0;"></div>
+                <span>🔴 Kembar 4 (4x)</span>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <label for="nikInput">Masukkan NIK KTP (16 Digit):</label>
+            <input type="text" id="nikInput" placeholder="Contoh: 6472012345670001" maxlength="16">
+        </div>
+
+        <div class="button-group">
+            <button onclick="addNIK()" id="addBtn">➕ Tambah NIK</button>
+            <button class="export-btn" onclick="exportToPDF()" id="exportBtn">📄 Download PDF</button>
+            <button class="backup-btn" onclick="downloadBackup()" id="backupBtn">💾 Backup CSV</button>
+            <button class="clear-btn" onclick="clearData()" id="clearBtn">🗑️ Hapus Semua</button>
+        </div>
+
+        <div class="warning" id="warning">
+            ⚠️ <strong>Peringatan!</strong> NIK ini sudah muncul lebih dari 4 kali. Data tidak dapat ditambahkan!
+        </div>
+
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+        <div class="info" id="info"></div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <strong>📊 Statistik Hari Ini:</strong>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCount">0</div>
+                    <div class="stat-label">Total NIK</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="uniqueCount">0</div>
+                    <div class="stat-label">NIK Unik</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="duplicateCount">0</div>
+                    <div class="stat-label">Ada Duplikat</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-display">
+            <h3>📋 Daftar NIK yang Dimasukkan:</h3>
+            <div class="data-list" id="dataList">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <p>Belum ada data NIK yang dimasukkan</p>
+                    <p style="font-size: 12px; margin-top: 10px;">💡 Login untuk sync data ke cloud</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <h3>🗑️ Hapus Data NIK</h3>
+            <p>Apakah Anda yakin ingin menghapus NIK ini?</p>
+            <div class="confirm-delete-nik" id="confirmDeleteNik"></div>
+            <p style="color: #666; font-size: 14px;">Data akan dihapus permanen dari cloud</p>
+            <div class="modal-buttons">
+                <button onclick="hideDeleteModal()" style="background: #6c757d;">Batal</button>
+                <button onclick="confirmDelete()" style="background: #dc3545;">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== FIREBASE CONFIGURATION =====
+        // Ganti dengan config Firebase Anda
+        // Dapatkan di: Firebase Console > Project Settings > Your apps
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAI5lsWVO0vxrcpMt1XswihGQECETHZnuE",
+  authDomain: "validasi-data-gas-da13c.firebaseapp.com",
+  databaseURL: "https://validasi-data-gas-da13c-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "validasi-data-gas-da13c",
+  storageBucket: "validasi-data-gas-da13c.firebasestorage.app",
+  messagingSenderId: "833315824895",
+  appId: "1:833315824895:web:5293a4b435adc1ea7e58ca",
+  measurementId: "G-Y6XPE1DVVH"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+        // Initialize Firebase
+        let app, auth, database;
+        let currentUser = null;
+        let dataArray = [];
+        let deleteIndex = -1;
+        let dataRef = null;
+
+        try {
+            app = firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            database = firebase.database();
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            showError('Gagal menginisialisasi Firebase. Periksa konfigurasi!');
+        }
+
+        // Auth state observer
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                updateUserUI(true);
+                setupRealtimeSync();
+                document.getElementById('loginPrompt').style.display = 'none';
+                document.getElementById('userInfo').style.display = 'flex';
+            } else {
+                currentUser = null;
+                updateUserUI(false);
+                dataArray = [];
+                updateDisplay();
+                document.getElementById('loginPrompt').style.display = 'block';
+                document.getElementById('userInfo').style.display = 'none';
+            }
+        });
+
+        // Setup realtime sync
+        function setupRealtimeSync() {
+            if (!currentUser) return;
+
+            const userId = currentUser.uid;
+            dataRef = database.ref('users/' + userId + '/data');
+
+            // Listen for changes
+            dataRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && Array.isArray(data)) {
+                    dataArray = data;
+                    updateDisplay();
+                    updateSyncStatus('success', 'Tersambung ke Firebase', 'Real-time sync aktif');
+                } else {
+                    dataArray = [];
+                    updateDisplay();
+                    updateSyncStatus('success', 'Database siap', 'Mulai input data');
+                }
+            }, (error) => {
+                console.error('Firebase read error:', error);
+                updateSyncStatus('error', 'Gagal membaca data', error.message);
+            });
+        }
+
+        // Sign in with Google
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    showSuccess('Berhasil login sebagai ' + result.user.displayName);
+                })
+                .catch((error) => {
+                    console.error('Login error:', error);
+                    showError('Gagal login: ' + error.message);
+                });
+        }
+
+        // Sign out
+        function signOut() {
+            if (confirm('Yakin ingin logout? Data akan tetap tersimpan di cloud.')) {
+                auth.signOut()
+                    .then(() => {
+                        showSuccess('Berhasil logout');
+                    })
+                    .catch((error) => {
+                        showError('Gagal logout: ' + error.message);
+                    });
+            }
+        }
+
+        // Update User UI
+        function updateUserUI(isLoggedIn) {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const syncText = document.getElementById('syncText');
+            
+            if (isLoggedIn && currentUser) {
+                document.getElementById('userName').textContent = currentUser.displayName;
+                document.getElementById('userEmail').textContent = currentUser.email;
+                
+                const initials = currentUser.displayName
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .substring(0, 2);
+                document.getElementById('userAvatar').textContent = initials;
+                
+                statusIndicator.className = 'online-indicator';
+                syncText.innerHTML = `
+                    <span class="online-indicator"></span>
+                    <span>Online - Tersambung ke Firebase</span>
+                `;
+            } else {
+                statusIndicator.className = 'offline-indicator';
+                syncText.innerHTML = `
+                    <span class="offline-indicator"></span>
+                    <span>Belum Login - Data hanya lokal</span>
+                `;
+            }
+        }
+
+        // Update Sync Status
+        function updateSyncStatus(status, message, time = '') {
+            const syncStatus = document.getElementById('syncStatus');
+            const syncText = document.getElementById('syncText');
+            const syncTime = document.getElementById('syncTime');
+            const statusIndicator = document.getElementById('statusIndicator');
+
+            syncStatus.className = 'sync-status ' + status;
+            
+            if (status === 'syncing') {
+                statusIndicator.className = 'online-indicator';
+                syncText.innerHTML = `<span class="spinner"></span>${message}`;
+            } else if (status === 'error') {
+                statusIndicator.className = 'offline-indicator';
+                syncText.innerHTML = `<span class="offline-indicator"></span>❌ ${message}`;
+            } else if (status === 'success') {
+                statusIndicator.className = 'online-indicator';
+                syncText.innerHTML = `<span class="online-indicator"></span>☁️ ${message}`;
+            } else {
+                statusIndicator.className = 'offline-indicator';
+                syncText.innerHTML = `<span class="offline-indicator"></span>⚠️ ${message}`;
+            }
+
+            if (time) {
+                syncTime.textContent = time;
+            }
+        }
+
+        // Save to Firebase
+        async function saveToFirebase() {
+            if (!currentUser || !dataRef) {
+                showError('Silakan login terlebih dahulu!');
+                return false;
+            }
+
+            try {
+                updateSyncStatus('syncing', 'Menyimpan ke Firebase...', '');
+                await dataRef.set(dataArray);
+                const now = new Date().toLocaleString('id-ID');
+                updateSyncStatus('success', 'Tersimpan di Firebase', `Terakhir sync: ${now}`);
+                return true;
+            } catch (error) {
+                console.error('Save error:', error);
+                updateSyncStatus('error', 'Gagal menyimpan', error.message);
+                showError('Gagal menyimpan ke Firebase: ' + error.message);
+                return false;
+            }
+        }
+
+        // Event listener untuk Enter key
+        document.getElementById('nikInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addNIK();
+            }
+        });
+
+        // Validasi NIK
+        function validateNIK(nik) {
+            nik = nik.replace(/\s/g, '');
+            
+            if (nik.length !== 16) {
+                return { valid: false, message: 'NIK harus 16 digit!' };
+            }
+            
+            if (!/^\d+$/.test(nik)) {
+                return { valid: false, message: 'NIK hanya boleh berisi angka!' };
+            }
+            
+            return { valid: true, nik: nik };
+        }
+
+        async function addNIK() {
+            if (!currentUser) {
+                showError('Silakan login dengan Google terlebih dahulu!');
+                return;
+            }
+
+            const input = document.getElementById('nikInput');
+            const value = input.value.trim();
+            const warning = document.getElementById('warning');
+
+            warning.classList.remove('show');
+
+            if (value === '') {
+                showError('Silakan masukkan NIK terlebih dahulu!');
+                return;
+            }
+
+            const validation = validateNIK(value);
+            if (!validation.valid) {
+                showError(validation.message);
+                return;
+            }
+
+            const nik = validation.nik;
+            const count = dataArray.filter(n => n === nik).length;
+
+            if (count >= 4) {
+                warning.classList.add('show');
+                input.value = '';
+                input.focus();
+                return;
+            }
+
+            dataArray.push(nik);
+            input.value = '';
+            input.focus();
+
+            await saveToFirebase();
+            showSuccess('NIK berhasil ditambahkan dan disimpan ke cloud!');
+        }
+
+        function updateDisplay() {
+            const list = document.getElementById('dataList');
+            const stats = document.getElementById('stats');
+
+            const frequency = {};
+            dataArray.forEach(nik => {
+                frequency[nik] = (frequency[nik] || 0) + 1;
+            });
+
+            if (dataArray.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p>Belum ada data NIK yang dimasukkan</p>
+                        <p style="font-size: 12px; margin-top: 10px;">💡 ${currentUser ? 'Mulai input NIK untuk menyimpan ke cloud' : 'Login untuk sync data ke cloud'}</p>
+                    </div>
+                `;
+                stats.style.display = 'none';
+                return;
+            }
+
+            list.innerHTML = '';
+            dataArray.forEach((nik, index) => {
+                const item = document.createElement('div');
+                item.className = 'data-item';
+
+                const count = frequency[nik];
+                let className = 'normal';
+                let badge = '1x';
+
+                if (count === 2) {
+                    className = 'duplicate-2';
+                    badge = 'Kembar 2';
+                } else if (count === 3) {
+                    className = 'duplicate-3';
+                    badge = 'Kembar 3';
+                } else if (count === 4) {
+                    className = 'duplicate-4';
+                    badge = 'Kembar 4';
+                }
+
+                item.classList.add(className);
+                item.innerHTML = `
+                    <div class="data-item-content">
+                        <div class="data-left">
+                            <span class="data-index">#${index + 1}</span>
+                            <span class="data-number">${formatNIK(nik)}</span>
+                        </div>
+                        <div class="data-right">
+                            <span class="data-badge">${badge}</span>
+                            <button class="delete-btn" onclick="showDeleteModal(${index})">🗑️ Hapus</button>
+                        </div>
+                    </div>
+                `;
+
+                list.appendChild(item);
+            });
+
+            stats.style.display = 'block';
+            document.getElementById('totalCount').textContent = dataArray.length;
+            document.getElementById('uniqueCount').textContent = Object.keys(frequency).length;
+            
+            const duplicates = Object.values(frequency).filter(count => count > 1).length;
+            document.getElementById('duplicateCount').textContent = duplicates;
+        }
+
+        function formatNIK(nik) {
+            return nik.replace(/(\d{4})(\d{4})(\d{4})(\d{4})/, '$1 $2 $3 $4');
+        }
+
+        function showDeleteModal(index) {
+            deleteIndex = index;
+            const nik = dataArray[index];
+            document.getElementById('confirmDeleteNik').textContent = formatNIK(nik);
+            document.getElementById('deleteModal').classList.add('show');
+        }
+
+        function hideDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('show');
+            deleteIndex = -1;
+        }
+
+        async function confirmDelete() {
+            if (deleteIndex === -1) return;
+
+            const deletedNIK = dataArray[deleteIndex];
+            dataArray.splice(deleteIndex, 1);
+            
+            hideDeleteModal();
+            
+            await saveToFirebase();
+            showSuccess(`NIK ${formatNIK(deletedNIK)} berhasil dihapus dari cloud!`);
+        }
+
+        async function clearData() {
+            if (!currentUser) {
+                showError('Silakan login terlebih dahulu!');
+                return;
+            }
+
+            if (dataArray.length === 0) {
+                showError('Tidak ada data untuk dihapus!');
+                return;
+            }
+
+            if (confirm('Apakah Anda yakin ingin menghapus semua data dari cloud?')) {
+                dataArray = [];
+                await saveToFirebase();
+                showSuccess('Semua data berhasil dihapus dari cloud!');
+            }
+        }
+
+        function downloadBackup() {
+            if (dataArray.length === 0) {
+                showError('Tidak ada data untuk di-backup!');
+                return;
+            }
+
+            const frequency = {};
+            dataArray.forEach(nik => {
+                frequency[nik] = (frequency[nik] || 0) + 1;
+            });
+
+            let csv = 'No,NIK,Jumlah Muncul,Status\n';
+            const processedNIKs = new Set();
+            let no = 1;
+
+            dataArray.forEach(nik => {
+                if (!processedNIKs.has(nik)) {
+                    const count = frequency[nik];
+                    let status = 'Normal';
+                    if (count === 2) status = 'Kembar 2';
+                    else if (count === 3) status = 'Kembar 3';
+                    else if (count === 4) status = 'Kembar 4';
+                    
+                    csv += `${no},${nik},${count}x,${status}\n`;
+                    processedNIKs.add(nik);
+                    no++;
+                }
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Backup_Gas_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            showSuccess('Backup CSV berhasil diunduh!');
+        }
+
+        function exportToPDF() {
+            if (dataArray.length === 0) {
+                showError('Tidak ada data untuk di-export!');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.text('LAPORAN VALIDASI DATA GAS', 105, 20, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            const today = new Date().toLocaleString('id-ID', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            doc.text('Tanggal: ' + today, 105, 30, { align: 'center' });
+
+            if (currentUser) {
+                doc.text('Petugas: ' + currentUser.displayName, 105, 37, { align: 'center' });
+            }
+
+            const frequency = {};
+            dataArray.forEach(nik => {
+                frequency[nik] = (frequency[nik] || 0) + 1;
+            });
+
+            const tableData = [];
+            const processedNIKs = new Set();
+            
+            dataArray.forEach((nik, index) => {
+                if (!processedNIKs.has(nik)) {
+                    const count = frequency[nik];
+                    let status = 'Normal';
+                    
+                    if (count === 2) status = 'Kembar 2';
+                    else if (count === 3) status = 'Kembar 3';
+                    else if (count === 4) status = 'Kembar 4';
+                    
+                    tableData.push([
+                        tableData.length + 1,
+                        formatNIK(nik),
+                        count + 'x',
+                        status
+                    ]);
+                    
+                    processedNIKs.add(nik);
+                }
+            });
+
+            doc.autoTable({
+                startY: 45,
+                head: [['No', 'NIK', 'Jumlah', 'Status']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [102, 126, 234],
+                    fontSize: 11,
+                    fontStyle: 'bold'
+                },
+                styles: { 
+                    fontSize: 10,
+                    cellPadding: 5,
+                    font: 'courier'
+                },
+                columnStyles: {
+                    0: { cellWidth: 15, halign: 'center' },
+                    1: { cellWidth: 80 },
+                    2: { cellWidth: 25, halign: 'center' },
+                    3: { cellWidth: 40, halign: 'center' }
+                },
+                didParseCell: function(data) {
+                    if (data.section === 'body' && data.column.index === 3) {
+                        const status = data.cell.raw;
+                        if (status === 'Kembar 2') {
+                            data.cell.styles.fillColor = [212, 244, 221];
+                        } else if (status === 'Kembar 3') {
+                            data.cell.styles.fillColor = [255, 249, 219];
+                        } else if (status === 'Kembar 4') {
+                            data.cell.styles.fillColor = [255, 224, 224];
+                        }
+                    }
+                }
+            });
+
+            const finalY = doc.lastAutoTable.finalY + 15;
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('RINGKASAN:', 14, finalY);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Total NIK Tercatat: ${dataArray.length}`, 14, finalY + 7);
+            doc.text(`NIK Unik: ${Object.keys(frequency).length}`, 14, finalY + 14);
+            
+            const duplicates = Object.values(frequency).filter(count => count > 1).length;
+            doc.text(`NIK dengan Duplikat: ${duplicates}`, 14, finalY + 21);
+
+            const filename = `Laporan_Gas_${new Date().toISOString().slice(0,10)}.pdf`;
+            doc.save(filename);
+            
+            showSuccess('PDF berhasil diunduh: ' + filename);
+        }
+
+        function showError(message) {
+            hideAllMessages();
+            const error = document.getElementById('error');
+            error.textContent = '❌ ' + message;
+            error.classList.add('show');
+            setTimeout(() => error.classList.remove('show'), 4000);
+        }
+
+        function showSuccess(message) {
+            hideAllMessages();
+            const success = document.getElementById('success');
+            success.textContent = '✅ ' + message;
+            success.classList.add('show');
+            setTimeout(() => success.classList.remove('show'), 3000);
+        }
+
+        function showInfo(message) {
+            const info = document.getElementById('info');
+            info.textContent = 'ℹ️ ' + message;
+            info.classList.add('show');
+            setTimeout(() => info.classList.remove('show'), 3000);
+        }
+
+        function hideAllMessages() {
+            document.getElementById('error').classList.remove('show');
+            document.getElementById('success').classList.remove('show');
+            document.getElementById('info').classList.remove('show');
+            document.getElementById('warning').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
